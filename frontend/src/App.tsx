@@ -76,6 +76,9 @@ const App = () => {
   const [phones, setPhones] = useState<{ name: string; phone_no: string }[]>(
     []
   );
+  const [filteredPhones, setFilteredPhones] = useState<
+    { name: string; phone_no: string }[]
+  >([]);
 
   const getPhoneData = async () => {
     const res = await fetch(`${API_URL}/contact/`, {
@@ -86,6 +89,7 @@ const App = () => {
     });
     const data = await res.json();
     setPhones(data);
+    setFilteredPhones(data);
   };
 
   useEffect(() => {
@@ -113,18 +117,31 @@ const App = () => {
     await getPhoneData();
   };
 
+  const searchByText = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      const filteredRes = phones.filter((p) => p.name.includes(e.target.value));
+      setFilteredPhones(filteredRes);
+    } else {
+      setFilteredPhones(phones);
+    }
+  };
+
   return (
     <>
       <Container sx={{ padding: "16px" }}>
         <Stack>
           <Stack direction="row" spacing={2}>
-            <TextField fullWidth label="Search contacts" />
+            <TextField
+              fullWidth
+              label="Search contacts"
+              onChange={searchByText}
+            />
             <Button variant="contained" onClick={openDialog}>
               Add
             </Button>
           </Stack>
           <Stack>
-            {phones.map((phone) => (
+            {filteredPhones.map((phone) => (
               <Card sx={{ margin: "16px" }} elevation={3}>
                 <CardContent>
                   <Typography
