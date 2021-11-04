@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import {
   Button,
   Container,
@@ -13,13 +13,30 @@ import {
   DialogActions,
 } from "@mui/material";
 
+const API_URL = "http://localhost:8000";
+
 const AddContactDialog = ({
   open,
   handleClose,
+  handleAdd,
 }: {
   open: boolean;
   handleClose: () => void;
+  handleAdd: (name: string, phone: string) => void;
 }) => {
+  const [formData, setFormData] = useState({ name: "", phone: "" });
+  const onFormChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const onAddSubmit = () => {
+    handleAdd(formData.name, formData.phone);
+    handleClose();
+  };
+
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogTitle>Add new contact</DialogTitle>
@@ -27,24 +44,28 @@ const AddContactDialog = ({
         <TextField
           autoFocus
           margin="dense"
-          id="name"
+          name="name"
           label="Name"
           type="text"
           fullWidth
           variant="standard"
+          onChange={onFormChange}
+          required
         />
         <TextField
           margin="dense"
-          id="phone"
+          name="phone"
           label="Phone"
           type="tel"
           fullWidth
           variant="standard"
+          onChange={onFormChange}
+          required
         />
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
-        <Button onClick={handleClose}>Add</Button>
+        <Button onClick={onAddSubmit}>Add</Button>
       </DialogActions>
     </Dialog>
   );
@@ -52,9 +73,24 @@ const AddContactDialog = ({
 
 const App = () => {
   const [open, setOpen] = useState(false);
-  const [phones, setPhones] = useState([
-    { name: "Test", phone: "+60169643600" },
-  ]);
+  const [phones, setPhones] = useState<{ name: string; phone_no: string }[]>(
+    []
+  );
+
+  const getPhoneData = async () => {
+    const res = await fetch(`${API_URL}/contact/`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await res.json();
+    setPhones(data);
+  };
+
+  useEffect(() => {
+    getPhoneData();
+  }, []);
 
   const openDialog = () => {
     setOpen(true);
@@ -62,6 +98,19 @@ const App = () => {
 
   const handleClose = () => {
     setOpen(false);
+  };
+
+  const handleAdd = async (name: string, phone: string) => {
+    const res = await fetch(`${API_URL}/contact/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name, phone_no: phone }),
+    });
+    const data = await res.json();
+    console.log(data);
+    await getPhoneData();
   };
 
   return (
@@ -86,7 +135,7 @@ const App = () => {
                     {phone.name}
                   </Typography>
                   <Typography variant="h5" component="div">
-                    {phone.phone}
+                    {phone.phone_no}
                   </Typography>
                 </CardContent>
               </Card>
@@ -94,7 +143,11 @@ const App = () => {
           </Stack>
         </Stack>
       </Container>
-      <AddContactDialog open={open} handleClose={handleClose} />
+      <AddContactDialog
+        open={open}
+        handleClose={handleClose}
+        handleAdd={handleAdd}
+      />
     </>
   );
 };
